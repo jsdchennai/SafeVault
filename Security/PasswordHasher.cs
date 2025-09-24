@@ -1,72 +1,88 @@
-using System.Security.Cryptography;
-using System.Text;
+using BCrypt.Net;
+using System;
 
 namespace SafeVault.Security
 {
     /// <summary>
-    /// Handles password hashing and verification according to OWASP guidelines
+    /// Handles password hashing and verification using BCrypt according to OWASP guidelines
     /// </summary>
     public static class PasswordHasher
     {
-        private const int DefaultSaltSizeInBytes = 32;
-        private const int DefaultHashSizeInBytes = 32;
-        private const int DefaultIterationCount = 100000;
+        // BCrypt work factor - higher means more secure but slower
+        // 12 is a good balance between security and performance as of 2025
+        private const int WorkFactor = 12;
 
         /// <summary>
-        /// Generates a cryptographically secure hash and salt for a password
+        /// Hashes a password using BCrypt with a secure work factor
         /// </summary>
         /// <param name="password">The password to hash</param>
-        /// <returns>A tuple containing the Base64-encoded hash and salt</returns>
+        /// <returns>The BCrypt hash which includes the salt</returns>
         /// <exception cref="ArgumentNullException">Thrown when password is null or empty</exception>
-        public static (string Hash, string Salt) HashPassword(string password)
+        public static string HashPassword(string password)
         {
             if (string.IsNullOrEmpty(password))
                 throw new ArgumentNullException(nameof(password));
 
-            byte[] salt = new byte[DefaultSaltSizeInBytes];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(salt);
-            }
-
-            byte[] hash = GetHash(password, salt);
-            return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
-        }
-
-        public static bool VerifyPassword(string password, string storedHash, string storedSalt)
-        {
-            if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(storedHash) || string.IsNullOrEmpty(storedSalt))
-                return false;
-
             try
             {
-                byte[] hash = Convert.FromBase64String(storedHash);
-                byte[] salt = Convert.FromBase64String(storedSalt);
-
-                byte[] computedHash = GetHash(password, salt);
-                return hash.SequenceEqual(computedHash);
+                // BCrypt will automatically generate a secure salt and include it in the hash
+                return BCrypt.Net.BCrypt.HashPassword(password, WorkFactor);
             }
-            catch
+            catch (Exception ex)
             {
-                return false; // Invalid hash or salt format
+                throw new InvalidOperationException("Failed to hash password", ex);
             }
         }
 
         /// <summary>
-        /// Generates a hash using PBKDF2 with SHA256
+        /// Verifies a password against a BCrypt hash
         /// </summary>
-        /// <param name="password">The password to hash</param>
-        /// <param name="salt">The salt to use in the hashing process</param>
-        /// <returns>The computed hash</returns>
-        private static byte[] GetHash(string password, byte[] salt)
+        /// <param name="password">The password to verify</param>
+        /// <param name="hashedPassword">The BCrypt hash to verify against</param>
+        /// <returns>True if the password matches the hash, false otherwise</returns>
+        public static bool VerifyPassword(string password, string hashedPassword)
         {
-            using (var pbkdf2 = new Rfc2898DeriveBytes(
-                Encoding.UTF8.GetBytes(password), 
-                salt, 
-                DefaultIterationCount, 
-                HashAlgorithmName.SHA256))
+            if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(hashedPassword))
+                return false;
+
+            try
             {
-                return pbkdf2.GetBytes(DefaultHashSizeInBytes);
+                // BCrypt.Verify will extract the salt from the hash and perform the comparison
+                return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+            }
+            catch
+            {
+                return false; // Invalid hash format or other error
+            }
+        }
+
+        /// <summary>
+        /// Checks if a hash needs to be upgraded based on our current security requirements
+        /// </summary>
+        /// <param name="hashedPassword">The BCrypt hash to check</param>
+        /// <returns>True if the hash should be upgraded, false otherwise</returns>
+        public static bool NeedsUpgrade(string hashedPassword)
+        {
+            if (string.IsNullOrEmpty(hashedPassword) || !hashedPassword.StartsWith("$2"))
+                return true; // Not a valid BCrypt hash
+
+            try
+            {
+                // Generate a test hash to compare settings
+                string testHash = BCrypt.Net.BCrypt.HashPassword("test", WorkFactor);
+                
+                // Compare the version and work factor parts of the hash
+                string[] currentParts = hashedPassword.Split('$');
+                string[] newParts = testHash.Split('$');
+                
+                // Check if the format versions match and if the work factor is sufficient
+                return currentParts.Length < 4 || newParts.Length < 4 ||
+                       currentParts[1] != newParts[1] || // Version mismatch
+                       int.Parse(currentParts[2]) < int.Parse(newParts[2]); // Work factor is too low
+            }
+            catch
+            {
+                return true; // If we can't parse the hash, it should be upgraded
             }
         }
     }
