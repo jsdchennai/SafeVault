@@ -7,11 +7,22 @@ public class AuthService
 {
     string allowedSpecialCharactersForPassword = "!@#$%^&*()";
 
+    // First check for basic input validation
     if (!ValidationHelpers.IsValidInput(username) ||
         !ValidationHelpers.IsValidInput(password, allowedSpecialCharactersForPassword))
     {
-        return false; // Validation failed
+        return false; // Basic validation failed
     }
+
+    // Check for XSS attempts
+    if (!ValidationHelpers.IsValidXSSInput(username) || !ValidationHelpers.IsValidXSSInput(password))
+    {
+        return false; // XSS validation failed
+    }
+
+    // Sanitize inputs before using them
+    username = ValidationHelpers.SanitizeInput(username);
+    password = ValidationHelpers.SanitizeInput(password);
 
     using (var connection = new SqlConnection("YourConnectionStringHere"))
     {
