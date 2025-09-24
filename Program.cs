@@ -13,18 +13,23 @@ namespace SafeVault;
 
 public class Program
 {
-    public static WebApplicationBuilder CreateWebApplicationBuilder(string[] args)
+    public static WebApplication CreateApp(string[] args)
     {
-        return WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(args);
+
+        ConfigureServices(builder.Services, builder.Configuration);
+
+        var app = builder.Build();
+
+        ConfigureMiddleware(app);
+
+        return app;
     }
 
-    public static async Task<WebApplication> CreateWebApplication(WebApplicationBuilder builder)
-    {
-
-// Add services to the container
-builder.Services.AddControllers();
-
-// Configure JWT
+public static IServiceCollection ConfigureServices(IServiceCollection services, IConfiguration configuration)
+{
+    // Add services to the container
+    services.AddControllers();// Configure JWT
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 
@@ -96,6 +101,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 // Register Role Services
 builder.Services.AddScoped<RoleInitializationService>();
 builder.Services.AddScoped<RoleManagementService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
