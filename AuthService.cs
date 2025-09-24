@@ -8,22 +8,36 @@ using Microsoft.Extensions.Configuration;
 
 namespace SafeVault.Services
 {
-    public class AuthService
+    /// <summary>
+    /// Handles user authentication and registration with security measures
+    /// </summary>
+    public class AuthenticationService
     {
         private readonly string _connectionString;
-        private const string AllowedPasswordCharacters = "!@#$%^&*()";
+        private const string ValidPasswordSpecialCharacters = "!@#$%^&*()";
 
-        public AuthService(IConfiguration configuration)
+        /// <summary>
+        /// Initializes a new instance of the AuthenticationService
+        /// </summary>
+        /// <param name="configuration">The configuration containing connection strings</param>
+        /// <exception cref="ArgumentNullException">Thrown when configuration is null</exception>
+        public AuthenticationService(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection") 
                 ?? throw new ArgumentNullException(nameof(configuration));
         }
 
+        /// <summary>
+        /// Authenticates a user with the provided credentials
+        /// </summary>
+        /// <param name="username">The username to authenticate</param>
+        /// <param name="password">The password to verify</param>
+        /// <returns>True if authentication is successful, false otherwise</returns>
         public async Task<bool> LoginUserAsync(string username, string password)
         {
             // Input validation
             if (!InputValidator.IsValidInput(username) ||
-                !InputValidator.IsValidInput(password, AllowedPasswordCharacters))
+                !InputValidator.IsValidInput(password, ValidPasswordSpecialCharacters))
             {
                 return false;
             }
@@ -60,11 +74,17 @@ namespace SafeVault.Services
             }
         }
 
+        /// <summary>
+        /// Registers a new user with the provided credentials
+        /// </summary>
+        /// <param name="username">The username for the new account</param>
+        /// <param name="password">The password for the new account</param>
+        /// <returns>True if registration is successful, false otherwise</returns>
         public async Task<bool> RegisterUserAsync(string username, string password)
         {
             // Input validation
             if (!InputValidator.IsValidInput(username) ||
-                !InputValidator.IsValidInput(password, AllowedPasswordCharacters))
+                !InputValidator.IsValidInput(password, ValidPasswordSpecialCharacters))
             {
                 return false;
             }

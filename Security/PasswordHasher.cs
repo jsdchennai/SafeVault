@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 namespace SafeVault.Security
 {
@@ -7,16 +8,22 @@ namespace SafeVault.Security
     /// </summary>
     public static class PasswordHasher
     {
-        private static readonly int SALT_SIZE = 32;
-        private static readonly int HASH_SIZE = 32;
-        private static readonly int ITERATIONS = 100000;
+        private const int DefaultSaltSizeInBytes = 32;
+        private const int DefaultHashSizeInBytes = 32;
+        private const int DefaultIterationCount = 100000;
 
+        /// <summary>
+        /// Generates a cryptographically secure hash and salt for a password
+        /// </summary>
+        /// <param name="password">The password to hash</param>
+        /// <returns>A tuple containing the Base64-encoded hash and salt</returns>
+        /// <exception cref="ArgumentNullException">Thrown when password is null or empty</exception>
         public static (string Hash, string Salt) HashPassword(string password)
         {
             if (string.IsNullOrEmpty(password))
                 throw new ArgumentNullException(nameof(password));
 
-            byte[] salt = new byte[SALT_SIZE];
+            byte[] salt = new byte[DefaultSaltSizeInBytes];
             using (var rng = RandomNumberGenerator.Create())
             {
                 rng.GetBytes(salt);
@@ -45,11 +52,21 @@ namespace SafeVault.Security
             }
         }
 
+        /// <summary>
+        /// Generates a hash using PBKDF2 with SHA256
+        /// </summary>
+        /// <param name="password">The password to hash</param>
+        /// <param name="salt">The salt to use in the hashing process</param>
+        /// <returns>The computed hash</returns>
         private static byte[] GetHash(string password, byte[] salt)
         {
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, ITERATIONS, HashAlgorithmName.SHA256))
+            using (var pbkdf2 = new Rfc2898DeriveBytes(
+                Encoding.UTF8.GetBytes(password), 
+                salt, 
+                DefaultIterationCount, 
+                HashAlgorithmName.SHA256))
             {
-                return pbkdf2.GetBytes(HASH_SIZE);
+                return pbkdf2.GetBytes(DefaultHashSizeInBytes);
             }
         }
     }

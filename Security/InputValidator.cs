@@ -7,9 +7,16 @@ namespace SafeVault.Security
     /// </summary>
     public static class InputValidator
     {
-        private const int MAX_INPUT_LENGTH = 1000;
+        private const int DefaultMaxInputLength = 1000;
 
-        public static bool IsValidInput(string input, string allowedSpecialCharacters = "", int maxLength = MAX_INPUT_LENGTH)
+        /// <summary>
+        /// Validates if the input string contains only allowed characters
+        /// </summary>
+        /// <param name="input">The string to validate</param>
+        /// <param name="allowedSpecialCharacters">Special characters that are allowed in addition to letters and digits</param>
+        /// <param name="maxLength">Maximum allowed length of the input</param>
+        /// <returns>True if the input is valid, false otherwise</returns>
+        public static bool IsValidInput(string input, string allowedSpecialCharacters = "", int maxLength = DefaultMaxInputLength)
         {
             if (string.IsNullOrWhiteSpace(input))
                 return false;
@@ -21,7 +28,13 @@ namespace SafeVault.Security
             return input.All(c => char.IsLetterOrDigit(c) || validCharacters.Contains(c));
         }
 
-        public static bool IsValidLength(string input, int maxLength = MAX_INPUT_LENGTH)
+        /// <summary>
+        /// Validates if the input string length is within the specified limit
+        /// </summary>
+        /// <param name="input">The string to validate</param>
+        /// <param name="maxLength">Maximum allowed length of the input</param>
+        /// <returns>True if the input length is valid, false otherwise</returns>
+        public static bool IsValidLength(string input, int maxLength = DefaultMaxInputLength)
         {
             return !string.IsNullOrEmpty(input) && input.Length <= maxLength;
         }
