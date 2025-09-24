@@ -29,10 +29,10 @@ namespace SafeVault.Security
         {
             // Test password hashing and verification
             string password = "TestPassword123!";
-            var (hash, salt) = PasswordHasher.HashPassword(password);
+            string hash = PasswordHasher.HashPassword(password);
 
-            bool validPassword = PasswordHasher.VerifyPassword(password, hash, salt);
-            bool invalidPassword = PasswordHasher.VerifyPassword("WrongPassword", hash, salt);
+            bool validPassword = PasswordHasher.VerifyPassword(password, hash);
+            bool invalidPassword = PasswordHasher.VerifyPassword("WrongPassword", hash);
 
             Console.WriteLine($"Valid password test: {(validPassword ? "Passed" : "Failed")}");
             Console.WriteLine($"Invalid password test: {(!invalidPassword ? "Passed" : "Failed")}");
