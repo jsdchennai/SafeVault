@@ -169,3 +169,4 @@ E:\coursera\SafeVault\obj\Debug\net9.0\refint\SafeVault.dll
 E:\coursera\SafeVault\obj\Debug\net9.0\SafeVault.pdb
 E:\coursera\SafeVault\obj\Debug\net9.0\SafeVault.genruntimeconfig.cache
 E:\coursera\SafeVault\obj\Debug\net9.0\ref\SafeVault.dll
+E:\coursera\SafeVault\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

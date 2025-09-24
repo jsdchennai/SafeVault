@@ -11,6 +11,8 @@ namespace SafeVault.Data
         {
         }
 
+        public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -24,6 +26,16 @@ namespace SafeVault.Data
                 .HasIndex(u => u.IsLocked)
                 .HasFilter("[IsLocked] = 1")
                 .HasDatabaseName("IX_Users_Locked");
+
+            builder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Token);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }
