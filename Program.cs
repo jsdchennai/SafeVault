@@ -1,15 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using SafeVault.Configuration;
 using SafeVault.Data;
 using SafeVault.Models;
-
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using SafeVault.Configuration;
 using SafeVault.Services;
+using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace SafeVault;
+
+public class Program
+{
+    public static WebApplicationBuilder CreateWebApplicationBuilder(string[] args)
+    {
+        return WebApplication.CreateBuilder(args);
+    }
+
+    public static async Task<WebApplication> CreateWebApplication(WebApplicationBuilder builder)
+    {
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -41,6 +51,15 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add Authorization with policies
+builder.Services.AddAuthorization(options =>
+{
+    AuthorizationPolicyConfiguration.ConfigurePolicies(options);
+});
+
+// Register custom authorization handlers
+builder.Services.AddScoped<IAuthorizationHandler, SecureConnectionHandler>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -74,7 +93,19 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// Register Role Services
+builder.Services.AddScoped<RoleInitializationService>();
+builder.Services.AddScoped<RoleManagementService>();
+
 var app = builder.Build();
+
+// Initialize roles and default admin user
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleInitializer = services.GetRequiredService<RoleInitializationService>();
+    await roleInitializer.InitializeRolesAsync();
+}
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
@@ -94,6 +125,15 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
-app.Run();
+return app;
+    }
+
+    public static async Task Main(string[] args)
+    {
+        var builder = CreateWebApplicationBuilder(args);
+        var app = await CreateWebApplication(builder);
+        await app.RunAsync();
+    }
+}
 
 
